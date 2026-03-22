@@ -1,25 +1,29 @@
 # Word Learner Pro
 
 ## Current State
-The Motoko backend stores words, sentences, and their styles in non-stable variables. On every canister upgrade (new deployment), all stored data including font/color styles is erased.
+Full-stack English vocabulary learning app with sentence management, per-word styling, progress tracking, and localStorage-based style persistence. Five tabs: Dashboard, My Vocabulary, Sentences, Tools, Progress.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `stable var` declarations for `nextSentenceId` and `sessionWords`
-- `stable var stableWords` and `stable var stableSentences` arrays for persisting map data across upgrades
-- `system func preupgrade()` to serialize maps to stable arrays before upgrade
-- `system func postupgrade()` to clear the stable arrays after they have been loaded into the maps
+- New "Arabic" tab in navigation
+- TranslationsView component: lists all saved red-word entries, each showing the English text in red and an "Add" button at the top
+- AddTranslationModal: form with English text field + Arabic translation field
+- TranslationCard: displays English phrase in red bold; clicking it opens a popup showing the Arabic translation in a clear, styled panel
+- `src/frontend/src/lib/translations.ts`: localStorage CRUD for translation entries (`wlp_translations_v1`)
+- Each entry: `{ id: string, english: string, arabic: string }`
 
 ### Modify
-- `var nextSentenceId` -> `stable var nextSentenceId`
-- `var sessionWords` -> `stable var sessionWords`
-- `let words` / `let sentences` maps initialized from stable arrays instead of empty
+- AppHeader: add "Arabic" tab to NAV_ITEMS
+- App.tsx: render TranslationsView when activeTab === "arabic"
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. Add stable backing arrays for words and sentences
-2. Initialize maps from those stable arrays at startup
-3. Add preupgrade/postupgrade system hooks to persist data on canister upgrade
+1. Create `lib/translations.ts` with get/add/delete helpers using localStorage key `wlp_translations_v1`
+2. Create `components/TranslationCard.tsx` showing red English text; click opens inline popover with Arabic translation
+3. Create `components/AddTranslationModal.tsx` with English + Arabic fields
+4. Create `components/TranslationsView.tsx` with list + add button
+5. Update `AppHeader.tsx` to add Arabic nav item
+6. Update `App.tsx` to import and render TranslationsView for activeTab === "arabic"

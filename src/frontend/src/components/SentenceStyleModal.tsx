@@ -21,19 +21,12 @@ import { Bold, Italic, Loader2, Underline, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { WordStyle } from "../backend.d";
 
-const DEFAULT_STYLE: WordStyle = {
-  fontFamily: "Inter",
-  color: "#1FA6A6",
-  fontSize: 16n,
-  bold: false,
-  italic: false,
-  underline: false,
-};
-
 interface SentenceStyleModalProps {
   open: boolean;
   sentenceId: bigint | null;
   sentenceText: string;
+  /** The currently saved style for this sentence -- used to pre-populate the editor */
+  initialStyle: WordStyle;
   onClose: () => void;
   onSave: (sentenceId: bigint, style: WordStyle) => Promise<void>;
 }
@@ -42,17 +35,39 @@ export function SentenceStyleModal({
   open,
   sentenceId,
   sentenceText,
+  initialStyle,
   onClose,
   onSave,
 }: SentenceStyleModalProps) {
-  const [style, setStyle] = useState<WordStyle>(DEFAULT_STYLE);
+  const [style, setStyle] = useState<WordStyle>(initialStyle);
   const [saving, setSaving] = useState(false);
   const [customFontName, setCustomFontName] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // When the modal opens, load the current style (not default)
   useEffect(() => {
-    if (open) setStyle(DEFAULT_STYLE);
-  }, [open]);
+    if (open) {
+      setStyle({
+        fontFamily: initialStyle.fontFamily,
+        color: initialStyle.color,
+        fontSize:
+          typeof initialStyle.fontSize === "bigint"
+            ? initialStyle.fontSize
+            : BigInt(initialStyle.fontSize),
+        bold: initialStyle.bold,
+        italic: initialStyle.italic,
+        underline: initialStyle.underline,
+      });
+    }
+  }, [
+    open,
+    initialStyle.fontFamily,
+    initialStyle.color,
+    initialStyle.fontSize,
+    initialStyle.bold,
+    initialStyle.italic,
+    initialStyle.underline,
+  ]);
 
   useEffect(() => {
     if (
@@ -105,7 +120,7 @@ export function SentenceStyleModal({
         <div className="space-y-5">
           {/* Preview */}
           <div className="rounded-xl border border-border bg-muted/40 p-4 flex items-center justify-center min-h-[72px]">
-            <span style={previewCss}>{sentenceText}</span>
+            <span style={previewCss}>{sentenceText || "Preview text"}</span>
           </div>
 
           {/* Font Family */}

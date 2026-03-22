@@ -15,6 +15,7 @@ interface SentenceCardProps {
   ) => void;
   onStyleSentence: (sentenceId: bigint) => void;
   index: number;
+  styleRevision: number;
 }
 
 export function SentenceCard({
@@ -23,6 +24,7 @@ export function SentenceCard({
   onWordClick,
   onStyleSentence,
   index,
+  styleRevision,
 }: SentenceCardProps) {
   const wordCount = splitIntoWords(sentence.text).length;
   const addedDate = new Date(Number(sentence.addedAt / 1_000_000n));
@@ -41,6 +43,7 @@ export function SentenceCard({
         <div className="mb-3">
           <SentenceDisplay
             sentence={sentence}
+            styleRevision={styleRevision}
             onWordClick={(wordText, style) =>
               onWordClick(sentence.id, wordText, style)
             }

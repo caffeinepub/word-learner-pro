@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
   { id: "vocabulary", label: "My Vocabulary" },
   { id: "sentences", label: "Sentences", icon: MessageSquare },
+  { id: "arabic", label: "Arabic" },
   { id: "tools", label: "Tools" },
   { id: "progress", label: "Progress" },
 ];

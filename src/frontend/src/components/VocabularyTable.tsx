@@ -24,6 +24,8 @@ interface VocabularyTableProps {
   loading: boolean;
   searchQuery: string;
   highlightEnabled: boolean;
+  /** Increments when a style is saved, forcing this component to re-read localStorage */
+  styleRevision: number;
   onEdit: (word: Word) => void;
   onDelete: (text: string) => void;
 }
@@ -55,6 +57,7 @@ export function VocabularyTable({
   loading,
   searchQuery,
   highlightEnabled,
+  styleRevision: _styleRevision,
   onEdit,
   onDelete,
 }: VocabularyTableProps) {
@@ -102,6 +105,7 @@ export function VocabularyTable({
           {words.map((word, index) => {
             const category = getCategory(word.text);
             const difficulty = getDifficulty(word.text);
+            // Always prefer localStorage override over backend style
             const styleOverride = getWordStyleOverride(word.text);
             const wordStyle = getWordStyle(styleOverride ?? word.style);
             const addedAt = new Date(Number(word.addedAt / 1_000_000n));

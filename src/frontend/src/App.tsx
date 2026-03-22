@@ -19,6 +19,7 @@ import { SearchBar } from "./components/SearchBar";
 import { SentenceStyleModal } from "./components/SentenceStyleModal";
 import { SentenceWordStyleModal } from "./components/SentenceWordStyleModal";
 import { SentencesView } from "./components/SentencesView";
+import { TranslationsView } from "./components/TranslationsView";
 import { VocabularyTable } from "./components/VocabularyTable";
 import { WordCustomizationModal } from "./components/WordCustomizationModal";
 import {
@@ -35,10 +36,17 @@ import {
 } from "./hooks/useQueries";
 import {
   deleteSentenceStyleOverride,
+  getSentenceStyleOverride,
   setSentenceStyleOverride,
 } from "./lib/sentenceStyles";
 import {
+  deleteSentenceWordStylesForSentence,
+  getSentenceWordStyleOverride,
+  setSentenceWordStyleOverride,
+} from "./lib/sentenceWordStyles";
+import {
   deleteWordStyleOverride,
+  getWordStyleOverride,
   setWordStyleOverride,
 } from "./lib/wordStyles";
 import { DEFAULT_STYLE } from "./lib/wordUtils";
@@ -53,6 +61,8 @@ function AppContent() {
   const [editingWord, setEditingWord] = useState<Word | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
+  // styleRevision is incremented after every style save to force re-renders
+  const [styleRevision, setStyleRevision] = useState(0);
   const [goal, setGoal] = useState<number>(() => {
     const stored = localStorage.getItem("wlp_goal");
     return stored ? Number.parseInt(stored, 10) : 100;
@@ -76,10 +86,12 @@ function AppContent() {
     open: boolean;
     sentenceId: bigint | null;
     sentenceText: string;
+    initialStyle: WordStyle;
   }>({
     open: false,
     sentenceId: null,
     sentenceText: "",
+    initialStyle: DEFAULT_STYLE,
   });
 
   const { data: words = [], isLoading: wordsLoading } = useGetAllWords();
@@ -145,18 +157,21 @@ function AppContent() {
 
   const handleDeleteSentence = async (id: bigint) => {
     await deleteSentenceMutation.mutateAsync(id);
-    // Also remove any stored sentence style override from localStorage
     deleteSentenceStyleOverride(String(id));
+    deleteSentenceWordStylesForSentence(String(id));
     toast.success("Sentence deleted.");
   };
 
   const handleSaveStyle = async (text: string, style: WordStyle) => {
-    // Persist to localStorage immediately so style survives page refresh
+    // Save to localStorage immediately -- this is the source of truth for display
     setWordStyleOverride(text, style);
+    // Bump styleRevision so VocabularyTable re-reads from localStorage
+    setStyleRevision((r) => r + 1);
+    // Also try backend (best effort)
     try {
       await updateStyleMutation.mutateAsync({ text, style });
     } catch {
-      // localStorage already saved, force re-render from local data
+      // localStorage already saved -- force re-render via query invalidation
       queryClientInstance.invalidateQueries({ queryKey: ["words"] });
     }
     toast.success(`Style updated for "${text}"`);
@@ -167,21 +182,34 @@ function AppContent() {
     wordText: string,
     style: WordStyle,
   ) => {
-    await updateSentenceWordStyleMutation.mutateAsync({
-      sentenceId,
-      wordText,
-      style,
-    });
+    // Save to localStorage immediately -- source of truth for individual word display
+    setSentenceWordStyleOverride(String(sentenceId), wordText, style);
+    // Bump styleRevision so SentenceDisplay re-reads from localStorage
+    setStyleRevision((r) => r + 1);
+    // Also try backend (best effort)
+    try {
+      await updateSentenceWordStyleMutation.mutateAsync({
+        sentenceId,
+        wordText,
+        style,
+      });
+    } catch {
+      queryClientInstance.invalidateQueries({ queryKey: ["sentences"] });
+    }
     toast.success(`Style updated for "${wordText}"`);
   };
 
   const handleStyleSentence = (sentenceId: bigint) => {
     const sentence = sentences.find((s) => s.id === sentenceId);
     if (!sentence) return;
+    // Load the currently saved style from localStorage (not DEFAULT)
+    const currentStyle =
+      getSentenceStyleOverride(String(sentenceId)) ?? DEFAULT_STYLE;
     setSentenceAllStyleModal({
       open: true,
       sentenceId,
       sentenceText: sentence.text,
+      initialStyle: currentStyle,
     });
   };
 
@@ -189,13 +217,14 @@ function AppContent() {
     sentenceId: bigint,
     style: WordStyle,
   ) => {
-    // Persist to localStorage immediately so style survives page refresh
+    // Save to localStorage immediately -- this is the source of truth for display
     setSentenceStyleOverride(String(sentenceId), style);
-    // Also try to update the backend (best effort)
+    // Bump styleRevision so SentenceDisplay re-reads from localStorage
+    setStyleRevision((r) => r + 1);
+    // Also try backend (best effort)
     try {
       await updateSentenceStyleMutation.mutateAsync({ sentenceId, style });
     } catch {
-      // localStorage already saved, but force re-render so UI reflects the change
       queryClientInstance.invalidateQueries({ queryKey: ["sentences"] });
     }
     toast.success("Style applied to all words in sentence!");
@@ -216,12 +245,25 @@ function AppContent() {
     wordText: string,
     style: WordStyle,
   ) => {
+    // Pre-load the individual word's saved style if available
+    const savedStyle =
+      getSentenceWordStyleOverride(String(sentenceId), wordText) ?? style;
     setSentenceStyleModal({
       open: true,
       sentenceId,
       wordText,
-      initialStyle: style,
+      initialStyle: savedStyle,
     });
+  };
+
+  // When the user opens the word style modal, load the localStorage override if available
+  const handleEditWord = (w: Word) => {
+    const override = getWordStyleOverride(w.text);
+    if (override) {
+      setEditingWord({ ...w, style: override });
+    } else {
+      setEditingWord(w);
+    }
   };
 
   const renderVocabularySection = () => (
@@ -250,7 +292,8 @@ function AppContent() {
           loading={wordsLoading}
           searchQuery={searchQuery}
           highlightEnabled={highlightEnabled}
-          onEdit={(w) => setEditingWord(w)}
+          styleRevision={styleRevision}
+          onEdit={handleEditWord}
           onDelete={handleDeleteWord}
         />
       </CardContent>
@@ -326,8 +369,12 @@ function AppContent() {
             onWordClick={handleSentenceWordClick}
             onStyleSentence={handleStyleSentence}
             totalSentences={totalSentences}
+            styleRevision={styleRevision}
           />
         )}
+
+        {/* Arabic Translations tab */}
+        {activeTab === "arabic" && <TranslationsView />}
       </main>
 
       {/* Footer */}
@@ -376,6 +423,7 @@ function AppContent() {
         open={sentenceAllStyleModal.open}
         sentenceId={sentenceAllStyleModal.sentenceId}
         sentenceText={sentenceAllStyleModal.sentenceText}
+        initialStyle={sentenceAllStyleModal.initialStyle}
         onClose={() =>
           setSentenceAllStyleModal((prev) => ({ ...prev, open: false }))
         }
