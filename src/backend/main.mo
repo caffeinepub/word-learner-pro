@@ -46,11 +46,27 @@ actor {
     totalSentences : Nat;
   };
 
-  var nextSentenceId = 0;
-  var sessionWords = 0;
+  // Stable storage for upgrades
+  stable var stableWords : [(Text, Word)] = [];
+  stable var stableSentences : [(Nat, Sentence)] = [];
+  stable var nextSentenceId : Nat = 0;
+  stable var sessionWords : Nat = 0;
 
-  let words = Map.empty<Text, Word>();
-  let sentences = Map.empty<Nat, Sentence>();
+  // Working maps initialized from stable storage
+  let words = Map.fromIter<Text, Word>(stableWords.values());
+  let sentences = Map.fromIter<Nat, Sentence>(stableSentences.values());
+
+  // Persist maps to stable arrays before upgrade
+  system func preupgrade() {
+    stableWords := words.entries().toArray();
+    stableSentences := sentences.entries().toArray();
+  };
+
+  // Clear stable arrays after upgrade (maps are already loaded)
+  system func postupgrade() {
+    stableWords := [];
+    stableSentences := [];
+  };
 
   let defaultStyle : WordStyle = {
     fontFamily = "Arial";
@@ -79,7 +95,7 @@ actor {
     text.trim(#char ' ').split(#char ' ').toArray().filter(func(word) { not word.isEmpty() });
   };
 
-  public shared ({ caller }) func addWord(text : Text) : async Bool {
+  public shared func addWord(text : Text) : async Bool {
     if (words.containsKey(text)) { return false };
     let newWord : Word = {
       text;
@@ -91,7 +107,7 @@ actor {
     true;
   };
 
-  public shared ({ caller }) func addWords(texts : [Text]) : async Nat {
+  public shared func addWords(texts : [Text]) : async Nat {
     var count = 0;
     for (text in texts.values()) {
       if (not words.containsKey(text)) {
@@ -108,7 +124,7 @@ actor {
     count;
   };
 
-  public shared ({ caller }) func addSentence(text : Text) : async Nat {
+  public shared func addSentence(text : Text) : async Nat {
     let id = nextSentenceId;
     let sentenceWords = splitTextIntoWords(text);
     let existingWordsSet = Set.fromIter(sentenceWords.values());
@@ -143,11 +159,11 @@ actor {
     newWords.size();
   };
 
-  public query ({ caller }) func getAllSentences() : async [Sentence] {
+  public query func getAllSentences() : async [Sentence] {
     sentences.values().toArray().sort();
   };
 
-  public shared ({ caller }) func updateSentenceWordStyle(sentenceId : Nat, wordText : Text, style : WordStyle) : async () {
+  public shared func updateSentenceWordStyle(sentenceId : Nat, wordText : Text, style : WordStyle) : async () {
     let sentence = getSentenceInternal(sentenceId);
     let updatedWordStyles = sentence.wordStyles.map(
       func((word, wordStyle)) {
@@ -166,7 +182,7 @@ actor {
     sentences.add(sentenceId, updatedSentence);
   };
 
-  public shared ({ caller }) func updateSentenceStyle(sentenceId : Nat, style : WordStyle) : async () {
+  public shared func updateSentenceStyle(sentenceId : Nat, style : WordStyle) : async () {
     let sentence = getSentenceInternal(sentenceId);
     let updatedWordStyles = sentence.wordStyles.map(
       func((word, _wordStyle)) {
@@ -181,16 +197,16 @@ actor {
     sentences.add(sentenceId, updatedSentence);
   };
 
-  public shared ({ caller }) func deleteSentence(sentenceId : Nat) : async () {
+  public shared func deleteSentence(sentenceId : Nat) : async () {
     if (not sentences.containsKey(sentenceId)) { Runtime.trap("Sentence does not exist") };
     sentences.remove(sentenceId);
   };
 
-  public query ({ caller }) func getAllWords() : async [Word] {
+  public query func getAllWords() : async [Word] {
     words.values().toArray();
   };
 
-  public shared ({ caller }) func updateWordStyle(text : Text, style : WordStyle) : async () {
+  public shared func updateWordStyle(text : Text, style : WordStyle) : async () {
     let word = getWordInternal(text);
     let updatedWord : Word = {
       word with
@@ -200,7 +216,7 @@ actor {
     words.add(text, updatedWord);
   };
 
-  public shared ({ caller }) func deleteWord(text : Text) : async () {
+  public shared func deleteWord(text : Text) : async () {
     if (not words.containsKey(text)) { Runtime.trap("Word does not exist") };
     words.remove(text);
   };
@@ -213,7 +229,7 @@ actor {
     sentences.size();
   };
 
-  public query ({ caller }) func getStats() : async Stats {
+  public query func getStats() : async Stats {
     {
       totalWords = countWords();
       sessionWords;
@@ -221,7 +237,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func resetSessionCounter() : async () {
+  public shared func resetSessionCounter() : async () {
     sessionWords := 0;
   };
 };
