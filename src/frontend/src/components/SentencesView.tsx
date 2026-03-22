@@ -11,6 +11,7 @@ interface SentencesViewProps {
   onAddSentence: () => void;
   onDelete: (id: bigint) => void;
   onWordClick: (sentenceId: bigint, wordText: string, style: WordStyle) => void;
+  onStyleSentence: (sentenceId: bigint) => void;
   totalSentences: number;
 }
 
@@ -18,6 +19,7 @@ export function SentencesView({
   onAddSentence,
   onDelete,
   onWordClick,
+  onStyleSentence,
   totalSentences,
 }: SentencesViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,6 +112,7 @@ export function SentencesView({
               sentence={sentence}
               onDelete={onDelete}
               onWordClick={onWordClick}
+              onStyleSentence={onStyleSentence}
               index={i + 1}
             />
           ))}

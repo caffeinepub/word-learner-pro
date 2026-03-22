@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { splitIntoWords } from "@/lib/wordUtils";
-import { Calendar, Trash2 } from "lucide-react";
+import { Calendar, Palette, Trash2 } from "lucide-react";
 import type { Sentence, WordStyle } from "../backend.d";
 import { SentenceDisplay } from "./SentenceDisplay";
 
@@ -13,6 +13,7 @@ interface SentenceCardProps {
     wordText: string,
     currentStyle: WordStyle,
   ) => void;
+  onStyleSentence: (sentenceId: bigint) => void;
   index: number;
 }
 
@@ -20,6 +21,7 @@ export function SentenceCard({
   sentence,
   onDelete,
   onWordClick,
+  onStyleSentence,
   index,
 }: SentenceCardProps) {
   const wordCount = splitIntoWords(sentence.text).length;
@@ -55,16 +57,28 @@ export function SentenceCard({
               {wordCount} word{wordCount !== 1 ? "s" : ""}
             </span>
           </div>
-          <Button
-            data-ocid={`sentences.delete_button.${index}`}
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
-            onClick={() => onDelete(sentence.id)}
-            title="Delete sentence"
-          >
-            <Trash2 size={13} />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              data-ocid={`sentences.style_button.${index}`}
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={() => onStyleSentence(sentence.id)}
+              title="Style all words"
+            >
+              <Palette size={13} />
+            </Button>
+            <Button
+              data-ocid={`sentences.delete_button.${index}`}
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+              onClick={() => onDelete(sentence.id)}
+              title="Delete sentence"
+            >
+              <Trash2 size={13} />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

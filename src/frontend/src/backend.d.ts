@@ -42,5 +42,6 @@ export interface backendInterface {
     getStats(): Promise<Stats>;
     resetSessionCounter(): Promise<void>;
     updateSentenceWordStyle(sentenceId: bigint, wordText: string, style: WordStyle): Promise<void>;
+    updateSentenceStyle(sentenceId: bigint, style: WordStyle): Promise<void>;
     updateWordStyle(text: string, style: WordStyle): Promise<void>;
 }

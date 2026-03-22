@@ -12,6 +12,7 @@ import { HeroPanel } from "./components/HeroPanel";
 import { LearningTools } from "./components/LearningTools";
 import { ProgressSection } from "./components/ProgressSection";
 import { SearchBar } from "./components/SearchBar";
+import { SentenceStyleModal } from "./components/SentenceStyleModal";
 import { SentenceWordStyleModal } from "./components/SentenceWordStyleModal";
 import { SentencesView } from "./components/SentencesView";
 import { VocabularyTable } from "./components/VocabularyTable";
@@ -21,8 +22,10 @@ import {
   useAddWords,
   useDeleteSentence,
   useDeleteWord,
+  useGetAllSentences,
   useGetAllWords,
   useGetStats,
+  useUpdateSentenceStyle,
   useUpdateSentenceWordStyle,
   useUpdateWordStyle,
 } from "./hooks/useQueries";
@@ -55,7 +58,19 @@ function AppContent() {
     initialStyle: DEFAULT_STYLE,
   });
 
+  // Sentence-level style modal state
+  const [sentenceAllStyleModal, setSentenceAllStyleModal] = useState<{
+    open: boolean;
+    sentenceId: bigint | null;
+    sentenceText: string;
+  }>({
+    open: false,
+    sentenceId: null,
+    sentenceText: "",
+  });
+
   const { data: words = [], isLoading: wordsLoading } = useGetAllWords();
+  const { data: sentences = [] } = useGetAllSentences();
   const { data: stats } = useGetStats();
   const addWordsMutation = useAddWords();
   const deleteWordMutation = useDeleteWord();
@@ -63,6 +78,7 @@ function AppContent() {
   const addSentenceMutation = useAddSentence();
   const deleteSentenceMutation = useDeleteSentence();
   const updateSentenceWordStyleMutation = useUpdateSentenceWordStyle();
+  const updateSentenceStyleMutation = useUpdateSentenceStyle();
 
   // Persist goal
   useEffect(() => {
@@ -134,6 +150,24 @@ function AppContent() {
       style,
     });
     toast.success(`Style updated for "${wordText}"`);
+  };
+
+  const handleStyleSentence = (sentenceId: bigint) => {
+    const sentence = sentences.find((s) => s.id === sentenceId);
+    if (!sentence) return;
+    setSentenceAllStyleModal({
+      open: true,
+      sentenceId,
+      sentenceText: sentence.text,
+    });
+  };
+
+  const handleSaveSentenceStyle = async (
+    sentenceId: bigint,
+    style: WordStyle,
+  ) => {
+    await updateSentenceStyleMutation.mutateAsync({ sentenceId, style });
+    toast.success("Style applied to all words in sentence!");
   };
 
   const openAddModal = () => {
@@ -259,6 +293,7 @@ function AppContent() {
             onAddSentence={openAddModal}
             onDelete={handleDeleteSentence}
             onWordClick={handleSentenceWordClick}
+            onStyleSentence={handleStyleSentence}
             totalSentences={totalSentences}
           />
         )}
@@ -304,6 +339,16 @@ function AppContent() {
           setSentenceStyleModal((prev) => ({ ...prev, open: false }))
         }
         onSave={handleSaveSentenceWordStyle}
+      />
+
+      <SentenceStyleModal
+        open={sentenceAllStyleModal.open}
+        sentenceId={sentenceAllStyleModal.sentenceId}
+        sentenceText={sentenceAllStyleModal.sentenceText}
+        onClose={() =>
+          setSentenceAllStyleModal((prev) => ({ ...prev, open: false }))
+        }
+        onSave={handleSaveSentenceStyle}
       />
 
       <Toaster richColors />

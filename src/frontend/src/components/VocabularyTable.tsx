@@ -15,7 +15,7 @@ import {
   getDifficulty,
   getWordStyle,
 } from "@/lib/wordUtils";
-import { Pencil, Trash2 } from "lucide-react";
+import { Palette, Pencil, Trash2 } from "lucide-react";
 import type { Word } from "../backend.d";
 
 interface VocabularyTableProps {
@@ -94,7 +94,7 @@ export function VocabularyTable({
             <TableHead className="w-[120px]">Category</TableHead>
             <TableHead className="w-[100px]">Difficulty</TableHead>
             <TableHead className="w-[130px]">Added</TableHead>
-            <TableHead className="w-[80px] text-right">Actions</TableHead>
+            <TableHead className="w-[100px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -148,6 +148,16 @@ export function VocabularyTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    <Button
+                      data-ocid={`vocabulary.style_button.${markerIndex}`}
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                      onClick={() => onEdit(word)}
+                      aria-label={`Style ${word.text}`}
+                    >
+                      <Palette size={13} />
+                    </Button>
                     <Button
                       data-ocid={`vocabulary.edit_button.${markerIndex}`}
                       variant="ghost"

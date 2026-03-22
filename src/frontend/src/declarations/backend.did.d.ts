@@ -48,6 +48,7 @@ export interface _SERVICE {
     [bigint, string, WordStyle],
     undefined
   >,
+  'updateSentenceStyle' : ActorMethod<[bigint, WordStyle], undefined>,
   'updateWordStyle' : ActorMethod<[string, WordStyle], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

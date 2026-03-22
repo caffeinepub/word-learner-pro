@@ -8,9 +8,9 @@ import Order "mo:core/Order";
 import Runtime "mo:core/Runtime";
 import Array "mo:core/Array";
 import Set "mo:core/Set";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   type Word = {
     text : Text;
@@ -162,6 +162,22 @@ actor {
       sentence with
       wordStyles = updatedWordStyles;
     };
+    sentences.remove(sentenceId);
+    sentences.add(sentenceId, updatedSentence);
+  };
+
+  public shared ({ caller }) func updateSentenceStyle(sentenceId : Nat, style : WordStyle) : async () {
+    let sentence = getSentenceInternal(sentenceId);
+    let updatedWordStyles = sentence.wordStyles.map(
+      func((word, _wordStyle)) {
+        (word, style);
+      }
+    );
+    let updatedSentence : Sentence = {
+      sentence with
+      wordStyles = updatedWordStyles;
+    };
+    sentences.remove(sentenceId);
     sentences.add(sentenceId, updatedSentence);
   };
 
@@ -180,6 +196,7 @@ actor {
       word with
       style;
     };
+    words.remove(text);
     words.add(text, updatedWord);
   };
 

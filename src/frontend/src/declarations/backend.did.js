@@ -44,6 +44,7 @@ export const idlService = IDL.Service({
   'getStats' : IDL.Func([], [Stats], ['query']),
   'resetSessionCounter' : IDL.Func([], [], []),
   'updateSentenceWordStyle' : IDL.Func([IDL.Nat, IDL.Text, WordStyle], [], []),
+  'updateSentenceStyle' : IDL.Func([IDL.Nat, WordStyle], [], []),
   'updateWordStyle' : IDL.Func([IDL.Text, WordStyle], [], []),
 });
 
@@ -90,6 +91,7 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'updateSentenceStyle' : IDL.Func([IDL.Nat, WordStyle], [], []),
     'updateWordStyle' : IDL.Func([IDL.Text, WordStyle], [], []),
   });
 };

@@ -99,7 +99,12 @@ export function WordCustomizationModal({
     <Dialog open={!!word} onOpenChange={(v) => !v && onClose()}>
       <DialogContent data-ocid="word_style.dialog" className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Customize Word Style</DialogTitle>
+          <DialogTitle>
+            Style Word:{" "}
+            <span className="text-primary font-semibold">
+              &ldquo;{word?.text}&rdquo;
+            </span>
+          </DialogTitle>
         </DialogHeader>
 
         {word && (

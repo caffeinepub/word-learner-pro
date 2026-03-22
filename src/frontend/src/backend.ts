@@ -124,6 +124,7 @@ export interface backendInterface {
     getStats(): Promise<Stats>;
     resetSessionCounter(): Promise<void>;
     updateSentenceWordStyle(sentenceId: bigint, wordText: string, style: WordStyle): Promise<void>;
+    updateSentenceStyle(sentenceId: bigint, style: WordStyle): Promise<void>;
     updateWordStyle(text: string, style: WordStyle): Promise<void>;
 }
 export class Backend implements backendInterface {
@@ -156,7 +157,7 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async addWords(arg0: Array<string>): Promise<bigint> {
+    async addWords(arg0: Array<string>): Promise<bigint>  {
         if (this.processError) {
             try {
                 const result = await this.actor.addWords(arg0);
@@ -265,6 +266,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateSentenceWordStyle(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async updateSentenceStyle(arg0: bigint, arg1: WordStyle): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateSentenceStyle(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateSentenceStyle(arg0, arg1);
             return result;
         }
     }

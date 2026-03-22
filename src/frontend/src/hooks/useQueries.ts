@@ -149,3 +149,23 @@ export function useUpdateSentenceWordStyle() {
     },
   });
 }
+
+export function useUpdateSentenceStyle() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      sentenceId,
+      style,
+    }: {
+      sentenceId: bigint;
+      style: WordStyle;
+    }) => {
+      if (!actor) throw new Error("No actor");
+      return actor.updateSentenceStyle(sentenceId, style);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sentences"] });
+    },
+  });
+}
