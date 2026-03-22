@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/sonner";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { BookOpen, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -29,11 +33,20 @@ import {
   useUpdateSentenceWordStyle,
   useUpdateWordStyle,
 } from "./hooks/useQueries";
+import {
+  deleteSentenceStyleOverride,
+  setSentenceStyleOverride,
+} from "./lib/sentenceStyles";
+import {
+  deleteWordStyleOverride,
+  setWordStyleOverride,
+} from "./lib/wordStyles";
 import { DEFAULT_STYLE } from "./lib/wordUtils";
 
 const queryClient = new QueryClient();
 
 function AppContent() {
+  const queryClientInstance = useQueryClient();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightEnabled, setHighlightEnabled] = useState(true);
@@ -126,16 +139,26 @@ function AppContent() {
 
   const handleDeleteWord = async (text: string) => {
     await deleteWordMutation.mutateAsync(text);
+    deleteWordStyleOverride(text);
     toast.success(`"${text}" removed from vocabulary.`);
   };
 
   const handleDeleteSentence = async (id: bigint) => {
     await deleteSentenceMutation.mutateAsync(id);
+    // Also remove any stored sentence style override from localStorage
+    deleteSentenceStyleOverride(String(id));
     toast.success("Sentence deleted.");
   };
 
   const handleSaveStyle = async (text: string, style: WordStyle) => {
-    await updateStyleMutation.mutateAsync({ text, style });
+    // Persist to localStorage immediately so style survives page refresh
+    setWordStyleOverride(text, style);
+    try {
+      await updateStyleMutation.mutateAsync({ text, style });
+    } catch {
+      // localStorage already saved, force re-render from local data
+      queryClientInstance.invalidateQueries({ queryKey: ["words"] });
+    }
     toast.success(`Style updated for "${text}"`);
   };
 
@@ -166,7 +189,15 @@ function AppContent() {
     sentenceId: bigint,
     style: WordStyle,
   ) => {
-    await updateSentenceStyleMutation.mutateAsync({ sentenceId, style });
+    // Persist to localStorage immediately so style survives page refresh
+    setSentenceStyleOverride(String(sentenceId), style);
+    // Also try to update the backend (best effort)
+    try {
+      await updateSentenceStyleMutation.mutateAsync({ sentenceId, style });
+    } catch {
+      // localStorage already saved, but force re-render so UI reflects the change
+      queryClientInstance.invalidateQueries({ queryKey: ["sentences"] });
+    }
     toast.success("Style applied to all words in sentence!");
   };
 

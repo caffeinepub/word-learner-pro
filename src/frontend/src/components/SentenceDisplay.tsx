@@ -1,5 +1,6 @@
 import { DEFAULT_STYLE, getWordStyle, splitIntoWords } from "@/lib/wordUtils";
 import type { Sentence, WordStyle } from "../backend.d";
+import { getSentenceStyleOverride } from "../lib/sentenceStyles";
 
 interface SentenceDisplayProps {
   sentence: Sentence;
@@ -13,13 +14,16 @@ export function SentenceDisplay({
   const words = splitIntoWords(sentence.text);
   const styleMap = new Map(sentence.wordStyles);
 
+  // Check localStorage for a sentence-level style override (persisted when user applies "Style All")
+  const sentenceOverride = getSentenceStyleOverride(String(sentence.id));
+
   return (
     <p className="leading-relaxed text-base">
       {words.map((word, i) => {
-        const style =
-          styleMap.get(word) ??
-          styleMap.get(word.toLowerCase()) ??
-          DEFAULT_STYLE;
+        // Priority: localStorage sentence override > backend per-word style > default
+        const backendStyle =
+          styleMap.get(word) ?? styleMap.get(word.toLowerCase());
+        const style = sentenceOverride ?? backendStyle ?? DEFAULT_STYLE;
         const cssStyle = getWordStyle(style);
         const key = `word-${i}-${word}`;
         return (

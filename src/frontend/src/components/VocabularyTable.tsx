@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getWordStyleOverride } from "@/lib/wordStyles";
 import {
   CATEGORY_COLORS,
   getCategory,
@@ -101,7 +102,8 @@ export function VocabularyTable({
           {words.map((word, index) => {
             const category = getCategory(word.text);
             const difficulty = getDifficulty(word.text);
-            const wordStyle = getWordStyle(word.style);
+            const styleOverride = getWordStyleOverride(word.text);
+            const wordStyle = getWordStyle(styleOverride ?? word.style);
             const addedAt = new Date(Number(word.addedAt / 1_000_000n));
             const markerIndex = index + 1;
 
